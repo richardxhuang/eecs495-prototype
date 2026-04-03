@@ -1,12 +1,18 @@
 import { useMemo, useState } from 'react'
 import { ViewToggle } from './components/ViewToggle'
-import { employees, zones } from './data/mockData'
+import { employees, zones as initialZones } from './data/mockData'
 import { moveEmployeeToZone } from './lib/zoneAssignment'
 import { ListView } from './views/ListView'
 import { MapView } from './views/MapView'
-import type { AssignmentMap, AppView, EmployeeHoursMap } from './types/domain'
+import type {
+  AssignmentMap,
+  AppView,
+  EmployeeHoursMap,
+  NewZoneInput,
+  Zone,
+} from './types/domain'
 
-const createEmptyAssignments = (): AssignmentMap =>
+const createEmptyAssignments = (zones: Zone[]): AssignmentMap =>
   Object.fromEntries(zones.map((zone) => [zone.id, []]))
 
 const createInitialEmployeeHours = (): EmployeeHoursMap =>
@@ -14,7 +20,11 @@ const createInitialEmployeeHours = (): EmployeeHoursMap =>
 
 function App() {
   const [activeView, setActiveView] = useState<AppView>('map')
-  const [assignments, setAssignments] = useState<AssignmentMap>(createEmptyAssignments)
+  const [zones, setZones] = useState<Zone[]>(initialZones)
+  const [startCreateZoneSignal, setStartCreateZoneSignal] = useState(0)
+  const [assignments, setAssignments] = useState<AssignmentMap>(() =>
+    createEmptyAssignments(initialZones),
+  )
   const [employeeHours, setEmployeeHours] = useState<EmployeeHoursMap>(
     createInitialEmployeeHours,
   )
@@ -36,17 +46,7 @@ function App() {
           },
         }
       }),
-    [assignments, employeeHours],
-  )
-
-  const assignmentSummary = useMemo(
-    () =>
-      zonesWithRuntimeHours.map((zone) => ({
-        zoneId: zone.id,
-        zoneName: zone.name,
-        employeeCount: assignments[zone.id]?.length ?? 0,
-      })),
-    [assignments, zonesWithRuntimeHours],
+    [assignments, employeeHours, zones],
   )
 
   const handleAssignEmployee = (employeeId: string, zoneId: string) => {
@@ -62,6 +62,50 @@ function App() {
         [employeeId]: nextHours,
       }
     })
+  }
+
+  const calculateCenterFromPath = (path: Zone['path']) => {
+    const total = path.reduce(
+      (acc, point) => ({
+        lat: acc.lat + point.lat,
+        lng: acc.lng + point.lng,
+      }),
+      { lat: 0, lng: 0 },
+    )
+
+    return {
+      lat: total.lat / path.length,
+      lng: total.lng / path.length,
+    }
+  }
+
+  const handleAddZone = (newZoneInput: NewZoneInput) => {
+    setZones((currentZones) => {
+      const safeName = newZoneInput.name.trim() || `Zone ${currentZones.length + 1}`
+      const zoneId = `zone-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+      const newZone: Zone = {
+        id: zoneId,
+        name: safeName,
+        center: calculateCenterFromPath(newZoneInput.path),
+        path: newZoneInput.path,
+        budget: {
+          totalHours: newZoneInput.totalHours,
+          usedHours: 0,
+        },
+      }
+
+      setAssignments((currentAssignments) => ({
+        ...currentAssignments,
+        [newZone.id]: [],
+      }))
+
+      return [...currentZones, newZone]
+    })
+  }
+
+  const handleStartCreateZone = () => {
+    setActiveView('map')
+    setStartCreateZoneSignal((current) => current + 1)
   }
 
   return (
@@ -82,6 +126,9 @@ function App() {
           employeeHours={employeeHours}
           onAssignEmployee={handleAssignEmployee}
           onChangeEmployeeHours={handleChangeEmployeeHours}
+          onAddZone={handleAddZone}
+          startCreateZoneSignal={startCreateZoneSignal}
+          zoneCount={zones.length}
         />
       ) : (
         <ListView
@@ -89,7 +136,9 @@ function App() {
           zones={zonesWithRuntimeHours}
           assignments={assignments}
           employeeHours={employeeHours}
-          assignmentSummary={assignmentSummary}
+          onAssignEmployee={handleAssignEmployee}
+          onChangeEmployeeHours={handleChangeEmployeeHours}
+          onStartCreateZone={handleStartCreateZone}
         />
       )}
     </main>

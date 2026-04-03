@@ -35,13 +35,13 @@ export const employees: Employee[] = [
 export const zones: Zone[] = [
   {
     id: 'zone-north',
-    name: 'North Zone',
-    center: { lat: 41.8935, lng: -87.63 },
+    name: 'Zone 1',
+    center: { lat: 42.357, lng: -83.060 },
     path: [
-      { lat: 41.8995, lng: -87.6425 },
-      { lat: 41.8995, lng: -87.6175 },
-      { lat: 41.8875, lng: -87.6175 },
-      { lat: 41.8875, lng: -87.6425 },
+      { lat: 42.3635, lng: -83.0735 },
+      { lat: 42.3635, lng: -83.0465 },
+      { lat: 42.3505, lng: -83.0465 },
+      { lat: 42.3505, lng: -83.0735 },
     ],
     budget: {
       totalHours: undefined,
@@ -50,13 +50,13 @@ export const zones: Zone[] = [
   },
   {
     id: 'zone-central',
-    name: 'Central Zone',
-    center: { lat: 41.8787, lng: -87.63 },
+    name: 'Zone 2',
+    center: { lat: 42.357, lng: -83.025 },
     path: [
-      { lat: 41.887, lng: -87.6425 },
-      { lat: 41.887, lng: -87.6175 },
-      { lat: 41.8705, lng: -87.6175 },
-      { lat: 41.8705, lng: -87.6425 },
+      { lat: 42.3635, lng: -83.0385 },
+      { lat: 42.3635, lng: -83.0115 },
+      { lat: 42.3505, lng: -83.0115 },
+      { lat: 42.3505, lng: -83.0385 },
     ],
     budget: {
       totalHours: 40,
@@ -65,13 +65,13 @@ export const zones: Zone[] = [
   },
   {
     id: 'zone-south',
-    name: 'South Zone',
-    center: { lat: 41.8615, lng: -87.63 },
+    name: 'Zone 3',
+    center: { lat: 42.332, lng: -83.060 },
     path: [
-      { lat: 41.8702, lng: -87.6425 },
-      { lat: 41.8702, lng: -87.6175 },
-      { lat: 41.8528, lng: -87.6175 },
-      { lat: 41.8528, lng: -87.6425 },
+      { lat: 42.3385, lng: -83.0735 },
+      { lat: 42.3385, lng: -83.0465 },
+      { lat: 42.3255, lng: -83.0465 },
+      { lat: 42.3255, lng: -83.0735 },
     ],
     budget: {
       totalHours: 50,
@@ -80,13 +80,13 @@ export const zones: Zone[] = [
   },
   {
     id: 'zone-west',
-    name: 'West Zone',
-    center: { lat: 41.878, lng: -87.6535 },
+    name: 'Zone 4',
+    center: { lat: 42.332, lng: -83.025 },
     path: [
-      { lat: 41.887, lng: -87.6645 },
-      { lat: 41.887, lng: -87.6445 },
-      { lat: 41.869, lng: -87.6445 },
-      { lat: 41.869, lng: -87.6645 },
+      { lat: 42.3385, lng: -83.0385 },
+      { lat: 42.3385, lng: -83.0115 },
+      { lat: 42.3255, lng: -83.0115 },
+      { lat: 42.3255, lng: -83.0385 },
     ],
     budget: {
       totalHours: 45,

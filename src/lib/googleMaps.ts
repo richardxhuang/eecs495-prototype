@@ -6,8 +6,8 @@ export const mapContainerStyle = {
 }
 
 export const defaultMapCenter = {
-  lat: 41.8784,
-  lng: -87.6298,
+  lat: 42.3314,
+  lng: -83.0458,
 }
 
 export const defaultMapZoom = 13

@@ -28,3 +28,9 @@ export type Zone = {
 export type AssignmentMap = Record<string, string[]>
 
 export type EmployeeHoursMap = Record<string, number>
+
+export type NewZoneInput = {
+  name: string
+  path: LatLngPoint[]
+  totalHours?: number
+}

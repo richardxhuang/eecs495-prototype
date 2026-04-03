@@ -2,9 +2,10 @@ import {
   GoogleMap,
   OverlayView,
   Polygon,
+  Polyline,
   useJsApiLoader,
 } from '@react-google-maps/api'
-import { Fragment, useMemo } from 'react'
+import { Fragment, useCallback, useMemo, useRef } from 'react'
 import {
   defaultMapCenter,
   defaultMapZoom,
@@ -19,6 +20,9 @@ type ZoneMapProps = {
   employees: Employee[]
   assignments: AssignmentMap
   employeeHours: EmployeeHoursMap
+  isCreateMode: boolean
+  draftZonePath: Zone['path']
+  onDraftZonePathChange: (path: Zone['path']) => void
   draggedEmployeeId?: string
   hoveredZoneId?: string
   onZoneHover: (zoneId?: string) => void
@@ -32,11 +36,17 @@ export function ZoneMap({
   employees,
   assignments,
   employeeHours,
+  isCreateMode,
+  draftZonePath,
+  onDraftZonePathChange,
   draggedEmployeeId,
   hoveredZoneId,
   onZoneHover,
   onDropEmployee,
 }: ZoneMapProps) {
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const projectionOverlayRef = useRef<google.maps.OverlayView | null>(null)
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey,
@@ -46,6 +56,56 @@ export function ZoneMap({
   const employeeLookup = useMemo(
     () => Object.fromEntries(employees.map((employee) => [employee.id, employee])),
     [employees],
+  )
+
+  const zonePolygons = useMemo(() => {
+    if (!isLoaded) {
+      return []
+    }
+
+    return zones.map((zone) => ({
+      zoneId: zone.id,
+      polygon: new google.maps.Polygon({ paths: zone.path }),
+    }))
+  }, [isLoaded, zones])
+
+  const getZoneIdAtClientPoint = useCallback(
+    (clientX: number, clientY: number): string | undefined => {
+      if (!mapRef.current || !projectionOverlayRef.current) {
+        return undefined
+      }
+
+      const mapRect = mapRef.current.getDiv().getBoundingClientRect()
+      const x = clientX - mapRect.left
+      const y = clientY - mapRect.top
+
+      if (x < 0 || y < 0 || x > mapRect.width || y > mapRect.height) {
+        return undefined
+      }
+
+      const projection = projectionOverlayRef.current.getProjection()
+      if (!projection) {
+        return undefined
+      }
+
+      const point = new google.maps.Point(x, y)
+      const latLng = projection.fromContainerPixelToLatLng(point)
+      if (!latLng) {
+        return undefined
+      }
+
+      const matchedZone = zonePolygons.find(({ polygon }) => {
+        const inside = google.maps.geometry.poly.containsLocation(latLng, polygon)
+        if (inside) {
+          return true
+        }
+
+        return google.maps.geometry.poly.isLocationOnEdge(latLng, polygon, 0.00001)
+      })
+
+      return matchedZone?.zoneId
+    },
+    [zonePolygons],
   )
 
   if (!googleMapsApiKey) {
@@ -66,16 +126,32 @@ export function ZoneMap({
 
   return (
     <div
-      className="map-surface"
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={(event) => {
+      className={isCreateMode ? 'map-surface create-mode' : 'map-surface'}
+      onDragOver={(event) => {
         event.preventDefault()
-        const employeeId = event.dataTransfer.getData('text/employee-id')
-        if (!employeeId || !hoveredZoneId) {
+        if (isCreateMode) {
+          return
+        }
+        if (!draggedEmployeeId) {
           onZoneHover(undefined)
           return
         }
-        onDropEmployee(employeeId, hoveredZoneId)
+
+        const zoneId = getZoneIdAtClientPoint(event.clientX, event.clientY)
+        onZoneHover(zoneId)
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        if (isCreateMode) {
+          return
+        }
+        const employeeId = event.dataTransfer.getData('text/employee-id')
+        const zoneId = getZoneIdAtClientPoint(event.clientX, event.clientY)
+        if (!employeeId || !zoneId) {
+          onZoneHover(undefined)
+          return
+        }
+        onDropEmployee(employeeId, zoneId)
         onZoneHover(undefined)
       }}
     >
@@ -88,8 +164,57 @@ export function ZoneMap({
           mapTypeControl: false,
           streetViewControl: false,
         }}
+        onLoad={(map) => {
+          mapRef.current = map
+
+          const projectionOverlay = new google.maps.OverlayView()
+          projectionOverlay.onAdd = () => {}
+          projectionOverlay.draw = () => {}
+          projectionOverlay.onRemove = () => {}
+          projectionOverlay.setMap(map)
+          projectionOverlayRef.current = projectionOverlay
+        }}
+        onUnmount={() => {
+          projectionOverlayRef.current?.setMap(null)
+          projectionOverlayRef.current = null
+          mapRef.current = null
+        }}
+        onClick={(event) => {
+          if (!isCreateMode || !event.latLng) {
+            return
+          }
+
+          onDraftZonePathChange([
+            ...draftZonePath,
+            { lat: event.latLng.lat(), lng: event.latLng.lng() },
+          ])
+        }}
         onDrag={() => onZoneHover(undefined)}
       >
+        {isCreateMode && draftZonePath.length >= 2 ? (
+          <Polyline
+            path={draftZonePath}
+            options={{
+              strokeColor: '#1d4ed8',
+              strokeWeight: 3,
+              zIndex: 60,
+            }}
+          />
+        ) : null}
+
+        {isCreateMode && draftZonePath.length >= 3 ? (
+          <Polygon
+            path={draftZonePath}
+            options={{
+              fillColor: '#2563eb',
+              fillOpacity: 0.3,
+              strokeColor: '#1d4ed8',
+              strokeWeight: 2,
+              zIndex: 50,
+            }}
+          />
+        ) : null}
+
         {zones.map((zone) => {
           const zoneStyle = getZoneStyle(zone)
           const isHovered = hoveredZoneId === zone.id
@@ -139,7 +264,7 @@ export function ZoneMap({
 
               <OverlayView
                 key={`${zone.id}-employees`}
-                position={{ lat: zone.center.lat + 0.0022, lng: zone.center.lng }}
+                position={{ lat: zone.center.lat - 0.0052, lng: zone.center.lng }}
                 mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
               >
                 <div className="zone-assignees">
@@ -160,6 +285,7 @@ export function ZoneMap({
                             alt={`${employee.fullName} profile`}
                           />
                           <em className="zone-avatar-hours">{employeeHours[employeeId] ?? 0}h</em>
+                          <small className="zone-avatar-initials">{employee.initials}</small>
                         </span>
                       ) : (
                         <span key={employeeId} className="zone-avatar-wrap">
@@ -167,6 +293,7 @@ export function ZoneMap({
                             {employee.initials}
                           </span>
                           <em className="zone-avatar-hours">{employeeHours[employeeId] ?? 0}h</em>
+                          <small className="zone-avatar-initials">{employee.initials}</small>
                         </span>
                       )
                     })
@@ -174,34 +301,17 @@ export function ZoneMap({
                 </div>
               </OverlayView>
 
-              <OverlayView
-                key={`${zone.id}-drop-target`}
-                position={{ lat: zone.center.lat - 0.0018, lng: zone.center.lng }}
-                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              >
-                <div
-                  className={
-                    hoveredZoneId === zone.id ? 'zone-drop-target active' : 'zone-drop-target'
-                  }
-                  onDragOver={(event) => {
-                    event.preventDefault()
-                    if (draggedEmployeeId) {
-                      onZoneHover(zone.id)
-                    }
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault()
-                    const employeeId = event.dataTransfer.getData('text/employee-id')
-                    if (!employeeId) {
-                      return
-                    }
-                    onDropEmployee(employeeId, zone.id)
-                    onZoneHover(undefined)
-                  }}
+              {draggedEmployeeId ? (
+                <OverlayView
+                  key={`${zone.id}-hint`}
+                  position={{ lat: zone.center.lat - 0.0083, lng: zone.center.lng }}
+                  mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
                 >
-                  Drop here
-                </div>
-              </OverlayView>
+                  <div className={hoveredZoneId === zone.id ? 'zone-drag-hint active' : 'zone-drag-hint'}>
+                    {hoveredZoneId === zone.id ? 'Release to assign' : 'Drop in zone'}
+                  </div>
+                </OverlayView>
+              ) : null}
             </Fragment>
           )
         })}
