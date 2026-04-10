@@ -63,6 +63,8 @@ export function MapView({
         employees={employees}
         assignments={assignments}
         employeeHours={employeeHours}
+        zoneOptions={zones}
+        onAssignEmployeeToZone={onAssignEmployee}
         onChangeEmployeeHours={onChangeEmployeeHours}
         onDragStart={setDraggedEmployeeId}
         onDragEnd={() => {

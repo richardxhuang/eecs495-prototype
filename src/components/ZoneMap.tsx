@@ -277,17 +277,7 @@ export function ZoneMap({
                         return null
                       }
 
-                      return employee.profileImageUrl ? (
-                        <span key={employeeId} className="zone-avatar-wrap">
-                          <img
-                            className="zone-avatar"
-                            src={employee.profileImageUrl}
-                            alt={`${employee.fullName} profile`}
-                          />
-                          <em className="zone-avatar-hours">{employeeHours[employeeId] ?? 0}h</em>
-                          <small className="zone-avatar-initials">{employee.initials}</small>
-                        </span>
-                      ) : (
+                      return (
                         <span key={employeeId} className="zone-avatar-wrap">
                           <span className="zone-avatar zone-avatar-fallback">
                             {employee.initials}

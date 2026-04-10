@@ -24,6 +24,7 @@ export function ListView({
 }: ListViewProps) {
   const [draggedEmployeeId, setDraggedEmployeeId] = useState<string>()
   const [hoveredZoneId, setHoveredZoneId] = useState<string>()
+  const [mobileAssignByZone, setMobileAssignByZone] = useState<Record<string, string>>({})
 
   const employeeLookup = Object.fromEntries(employees.map((employee) => [employee.id, employee]))
   const zoneCards = useMemo(
@@ -103,6 +104,32 @@ export function ListView({
                   setHoveredZoneId(undefined)
                 }}
               >
+                <select
+                  className="mobile-zone-assign-select"
+                  value={mobileAssignByZone[zone.id] ?? ''}
+                  onChange={(event) => {
+                    const employeeId = event.target.value
+                    setMobileAssignByZone((current) => ({
+                      ...current,
+                      [zone.id]: employeeId,
+                    }))
+                    if (!employeeId) {
+                      return
+                    }
+                    onAssignEmployee(employeeId, zone.id)
+                    setMobileAssignByZone((current) => ({
+                      ...current,
+                      [zone.id]: '',
+                    }))
+                  }}
+                >
+                  <option value="">Assign employee to {zone.name}</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.fullName}
+                    </option>
+                  ))}
+                </select>
                 {assignedIds.length > 0 ? (
                   <div className="zone-drop-assignees">
                     {assignedIds.map((employeeId) => {
@@ -113,17 +140,9 @@ export function ListView({
 
                       return (
                         <div key={employeeId} className="list-assignee-card">
-                          {employee.profileImageUrl ? (
-                            <img
-                              className="list-assignee-avatar"
-                              src={employee.profileImageUrl}
-                              alt={`${employee.fullName} profile`}
-                            />
-                          ) : (
-                            <span className="list-assignee-avatar list-assignee-fallback">
-                              {employee.initials}
-                            </span>
-                          )}
+                          <span className="list-assignee-avatar list-assignee-fallback">
+                            {employee.initials}
+                          </span>
                           <div className="list-assignee-meta">
                             <strong>{employee.initials}</strong>
                             <span>{employeeHours[employeeId] ?? 0}h</span>
@@ -133,7 +152,7 @@ export function ListView({
                     })}
                   </div>
                 ) : (
-                  <span className="zone-drop-empty">Drop employees here</span>
+                  <span className="zone-drop-empty desktop-only">Drop employees here</span>
                 )}
               </div>
             </article>

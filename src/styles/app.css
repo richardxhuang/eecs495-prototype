@@ -154,6 +154,16 @@ h2 {
   font-size: 0.8rem;
 }
 
+.mobile-assignment-select {
+  display: none;
+  margin-top: 0.35rem;
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.42rem;
+  padding: 0.32rem 0.45rem;
+  font-size: 0.85rem;
+}
+
 .hours-stepper {
   margin-left: auto;
   display: inline-flex;
@@ -455,6 +465,17 @@ h2 {
   padding: 0.75rem;
 }
 
+.mobile-zone-assign-select {
+  display: none;
+  width: 100%;
+  border: 1px solid #94a3b8;
+  border-radius: 0.45rem;
+  background: #fff;
+  padding: 0.46rem 0.52rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.65rem;
+}
+
 .zone-drop-empty {
   color: #475569;
 }
@@ -489,6 +510,10 @@ h2 {
   background: #334155;
   font-size: 0.95rem;
   font-weight: 700;
+}
+
+.desktop-only {
+  display: inline-flex;
 }
 
 .list-assignee-meta {
@@ -543,5 +568,17 @@ h2 {
 
   .map-panel {
     min-height: 500px;
+  }
+
+  .mobile-assignment-select {
+    display: block;
+  }
+
+  .mobile-zone-assign-select {
+    display: block;
+  }
+
+  .desktop-only {
+    display: none;
   }
 }
